@@ -1,0 +1,3 @@
+[submodule "pubsubcache"]
+	path = pubsubcache
+	url = git@github.com:HazelDaniel/pubsubcache.git
