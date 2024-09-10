@@ -36,6 +36,40 @@ let users = {
       },
     ],
   },
+  3: {
+    user_id: "3",
+    name: "Claire",
+    news: [
+      {
+        news_id: "103",
+        title: "Claire's News",
+        content: "This is Claire's news content.",
+      },
+    ],
+  },
+};
+
+let comments = {
+  1: {
+    news_id: "101",
+    content: "a comment on some news content",
+  },
+  2: {
+    news_id: "102",
+    content: "a comment on Bob's news content.",
+  },
+  3: {
+    news_id: "103",
+    content: "a comment on Claire's news content.",
+  },
+  4: {
+    news_id: "103",
+    content: "another comment on Claire's news content.",
+  },
+  5: {
+    news_id: "101",
+    content: "another comment on some news content.",
+  },
 };
 
 // Helper function to simulate response delays
@@ -46,9 +80,6 @@ const delay = (seconds) => {
     }, seconds * 1000);
   });
 };
-//  Promise.resolve (req, res, next) => {
-//     setTimeout(() => next(), 2000); // Add a 2 second delay for the GET methods
-// };
 
 /**
  * GET /users/:user_id
@@ -108,7 +139,7 @@ app.get(
  */
 app.get(
   "/users/:user_id/news",
-  GlobalRouteCache.createCacheSubscriber({ catchAll: true }),
+  GlobalRouteCache.createCacheSubscriber(),
   async (req, res) => {
     const { user_id } = req.params;
     let user;
@@ -136,7 +167,7 @@ app.get(
  */
 app.get(
   "/users/:user_id/news/:news_id",
-  GlobalRouteCache.createCacheSubscriber({ catchAll: true }),
+  GlobalRouteCache.createCacheSubscriber(),
   async (req, res) => {
     const { user_id, news_id } = req.params;
     const user = users[user_id];
@@ -298,6 +329,137 @@ app.post(
       message: `Created new user news with ID: ${newNewsID}`,
       // user: users[newUserId],
     });
+  }
+);
+
+// GET /users/:user_id/news/:news_id/comments
+// Fetch all comments for specific news
+app.get(
+  "/users/:user_id/news/:news_id/comments",
+  GlobalRouteCache.createCacheSubscriber(),
+  async (req, res) => {
+    const { news_id } = req.params;
+    console.log(`request full route is: ${req.baseUrl}${req.url} `);
+    console.log(
+      `request full route pattern is: ${req.baseUrl}${req.route.path} `
+    );
+
+    // cache hit
+    if (res.locals.cachedResponse) {
+      return res
+        .status(res.locals.cachedResponse.statusCode)
+        .set(res.locals.cachedResponse.headers)
+        .send(res.locals.cachedResponse.body);
+    }
+
+    // cache miss
+    const newsComments = Object.entries(comments)
+      .filter(([id, comment]) => comment.news_id === news_id)
+      .map(([id, comment]) => ({ id, ...comment }));
+
+    if (newsComments.length > 0) {
+      await delay(DELAY_INTERVAL);
+      res.json(newsComments);
+    } else {
+      res.status(404).send({ message: "No comments found for this news." });
+    }
+  }
+);
+
+// GET /users/:user_id/news/:news_id/comments/:comment_id
+// Fetch a specific comment for a specific news
+app.get(
+  "/users/:user_id/news/:news_id/comments/:comment_id",
+  GlobalRouteCache.createCacheSubscriber(),
+  async (req, res) => {
+    const { comment_id, news_id } = req.params;
+
+    // cache hit
+    if (res.locals.cachedResponse) {
+      return res
+        .status(res.locals.cachedResponse.statusCode)
+        .set(res.locals.cachedResponse.headers)
+        .send(res.locals.cachedResponse.body);
+    }
+
+    // cache miss
+    const comment = comments[comment_id];
+
+    if (comment && comment.news_id === news_id) {
+      await delay(DELAY_INTERVAL);
+      res.json({ id: comment_id, ...comment });
+    } else {
+      res.status(404).send({ message: "Comment not found." });
+    }
+  }
+);
+
+// POST /users/:user_id/news/:news_id/comments
+// Create a new comment for specific news
+app.post(
+  "/users/:user_id/news/:news_id/comments",
+  GlobalRouteCache.createCachePublisher({
+    cascade: ["/users/:user_id/news/:news_id"],
+  }),
+  (req, res) => {
+    const { news_id } = req.params;
+    const { content } = req.body;
+
+    // cache miss
+    const newCommentId = Object.keys(comments).length + 1;
+    comments[newCommentId] = {
+      news_id: news_id,
+      content: content,
+    };
+
+    res.status(201).json({ id: newCommentId, ...comments[newCommentId] });
+  }
+);
+
+// PUT /users/:user_id/news/:news_id/comments/:comment_id
+// Update a specific comment for a specific news
+app.put(
+  "/users/:user_id/news/:news_id/comments/:comment_id",
+  GlobalRouteCache.createCachePublisher({
+    cascade: ["/users/:user_id/news/:news_id"],
+  }),
+  async (req, res) => {
+    const { comment_id, news_id } = req.params;
+    const { content } = req.body;
+
+    const comment = comments[comment_id];
+
+    if (comment && comment.news_id === news_id) {
+      comments[comment_id].content = content;
+      return res.json({ id: comment_id, ...comments[comment_id] });
+    } else {
+      res.status(404).send({
+        message: "Comment not found or does not belong to this news.",
+      });
+    }
+  }
+);
+
+// DELETE /users/:user_id/news/:news_id/comments/:comment_id
+// Delete a specific comment for a specific news
+app.delete(
+  "/users/:user_id/news/:news_id/comments/:comment_id",
+  GlobalRouteCache.createCachePublisher({
+    cascade: ["/users/:user_id/news/:news_id"],
+  }),
+  async (req, res) => {
+    const { comment_id, news_id } = req.params;
+
+    const comment = comments[comment_id];
+
+    if (comment && comment.news_id === news_id) {
+      delete comments[comment_id];
+      return res.json({ message: "Comment deleted successfully." });
+    } else {
+      res.status(404).send({
+        message: "Comment not found or does not belong to this news.",
+      });
+    }
   }
 );
 
