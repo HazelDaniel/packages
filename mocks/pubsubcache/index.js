@@ -1,5 +1,5 @@
 import express from "express";
-import { GlobalRouteCache } from "pubsubcache";
+import {GlobalRouteCache} from "express-pubsubcache";
 import { usersRouter } from "./routes/users.js";
 import { commentsRouter } from "./routes/comments.js";
 import { newsRouter } from "./routes/news.js";

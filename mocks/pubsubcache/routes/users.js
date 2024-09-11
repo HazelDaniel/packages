@@ -1,6 +1,6 @@
 import express from "express";
 const usersRouter = express.Router();
-import { GlobalRouteCache } from "pubsubcache";
+import GlobalRouteCache from "express-pubsubcache";
 import { users, DELAY_INTERVAL, delay } from "../data.js";
 
 // GET /users/:user_id

@@ -2,7 +2,7 @@ import express from "express";
 const commentsRouter = express.Router();
 import { delay, DELAY_INTERVAL, comments } from "../data.js";
 
-import { GlobalRouteCache } from "pubsubcache";
+import { GlobalRouteCache } from "express-pubsubcache";
 
 // GET /users/:user_id/news/:news_id/comments
 commentsRouter.get(
