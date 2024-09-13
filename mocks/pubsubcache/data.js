@@ -1,4 +1,4 @@
-export const DELAY_INTERVAL = 5;
+export const DELAY_INTERVAL = 1;
 
 // Helper function to simulate response delays
 export const delay = (seconds) => {

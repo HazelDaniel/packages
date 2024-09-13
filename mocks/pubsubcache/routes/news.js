@@ -91,7 +91,7 @@ newsRouter.post(
   (req, res) => {
     const { user_id } = req.params;
     const user = users[user_id];
-    if (!user) return res.status(404).send({ message: "User not found" });
+    if (!user) return res.status(404).send({ message: "news not found" });
     const newNews = { news_id: String(user.news.length), ...req.body };
     user.news.push(newNews);
     res.send({ message: `Created new news for user ${user_id}` });
